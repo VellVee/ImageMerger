@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JXL Image Merger</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -68,10 +67,26 @@
     <!-- Crop Modal -->
     <div id="crop-modal" class="modal hidden">
         <div class="modal-content">
-            <h2>Crop Image</h2>
+            <h2>Crop Image <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: normal; margin-left: 1rem;">(Ctrl + Scroll to zoom)</span></h2>
             <div class="crop-wrapper" id="crop-wrapper">
-                <div class="crop-container" id="crop-container">
+                <div class="crop-workspace" id="crop-workspace">
                     <img id="crop-image" src="" alt="Image to crop">
+                    
+                    <div class="custom-crop-overlay" id="overlay-top"></div>
+                    <div class="custom-crop-overlay" id="overlay-bottom"></div>
+                    <div class="custom-crop-overlay" id="overlay-left"></div>
+                    <div class="custom-crop-overlay" id="overlay-right"></div>
+                    
+                    <div class="custom-crop-box" id="custom-crop-box">
+                        <div class="custom-crop-handle n" data-dir="n"></div>
+                        <div class="custom-crop-handle s" data-dir="s"></div>
+                        <div class="custom-crop-handle e" data-dir="e"></div>
+                        <div class="custom-crop-handle w" data-dir="w"></div>
+                        <div class="custom-crop-handle ne" data-dir="ne"></div>
+                        <div class="custom-crop-handle nw" data-dir="nw"></div>
+                        <div class="custom-crop-handle se" data-dir="se"></div>
+                        <div class="custom-crop-handle sw" data-dir="sw"></div>
+                    </div>
                 </div>
             </div>
             <div class="crop-inputs">
@@ -88,7 +103,6 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
