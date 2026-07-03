@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environment
+venv/
+env/
+.env
+
+# MacOS
+.DS_Store
+
+# Logs and databases
+*.log
+*.sqlite3
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+
+# Temporary uploads/processing files (if any are saved locally)
+uploads/
+temp/
