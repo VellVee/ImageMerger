@@ -4,17 +4,36 @@ const gallery = document.getElementById('gallery');
 const mergeBtn = document.getElementById('merge-btn');
 const autoRemoveCheck = document.getElementById('auto-remove-black-bars');
 const menuToggleBtn = document.getElementById('menu-toggle-btn');
-const settingsMenu = document.getElementById('settings-menu');
+const settingsPanel = document.getElementById('settings-panel');
 
 menuToggleBtn.addEventListener('click', () => {
-    settingsMenu.classList.toggle('hidden');
+    settingsPanel.classList.toggle('hidden');
 });
 
-document.addEventListener('click', (e) => {
-    if (!settingsMenu.contains(e.target) && !menuToggleBtn.contains(e.target)) {
-        settingsMenu.classList.add('hidden');
+const outputFormatSelect = document.getElementById('output-format');
+const qualityGroup = document.getElementById('quality-group');
+const qualitySlider = document.getElementById('quality-slider');
+const qualityValue = document.getElementById('quality-value');
+
+function updateQualityDisplay() {
+    const format = outputFormatSelect.value;
+    const val = parseInt(qualitySlider.value, 10);
+    
+    if (format === 'png') {
+        qualityGroup.style.display = 'none';
+    } else {
+        qualityGroup.style.display = 'flex';
+        if (val === 100 && (format === 'webp' || format === 'jxl')) {
+            qualityValue.textContent = '100 (Lossless)';
+        } else {
+            qualityValue.textContent = val;
+        }
     }
-});
+}
+
+outputFormatSelect.addEventListener('change', updateQualityDisplay);
+qualitySlider.addEventListener('input', updateQualityDisplay);
+updateQualityDisplay(); // Initialize state
 
 const cropModal = document.getElementById('crop-modal');
 const cropImage = document.getElementById('crop-image');
@@ -508,6 +527,7 @@ mergeBtn.addEventListener('click', async () => {
     
     const outputFormat = document.getElementById('output-format').value;
     formData.append('output_format', outputFormat);
+    formData.append('quality', qualitySlider.value);
 
     try {
         const response = await fetch('/api/merge', {

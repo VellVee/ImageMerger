@@ -22,13 +22,18 @@ body {
     min-height: 100vh;
     display: flex;
     justify-content: center;
-    align-items: stretch;
     padding: 2rem;
+}
+
+.layout-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+    display: flex;
 }
 
 .container {
     width: 100%;
-    max-width: 900px;
     background: var(--bg-card);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
@@ -39,7 +44,6 @@ body {
     display: flex;
     flex-direction: column;
     gap: 2rem;
-    flex: 1;
 }
 
 main {
@@ -85,23 +89,44 @@ header p {
     background: rgba(255, 255, 255, 0.1);
 }
 
-.settings-menu {
+.settings-panel {
     position: absolute;
-    top: 3rem;
-    right: 0;
+    left: calc(100% + 2rem);
+    top: 0;
     background: var(--bg-card);
+    backdrop-filter: blur(16px);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-    z-index: 100;
-    min-width: 250px;
-    text-align: left;
-    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    padding: 3rem 2rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    width: 300px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
 }
 
-.settings-menu.hidden {
-    display: none;
+.settings-panel.hidden {
+    transform: translateX(-20px);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.settings-panel h2 {
+    font-size: 1.5rem;
+    color: var(--text-main);
+    margin-bottom: 2rem;
+}
+
+.quality-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.quality-group input[type="range"] {
+    width: 100%;
+    accent-color: var(--primary);
 }
 
 /* Drop Zone */
@@ -159,20 +184,52 @@ header p {
     border: none;
 }
 
-.checkbox-container {
+.toggle-container {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: 0.75rem;
     cursor: pointer;
     font-size: 1rem;
     user-select: none;
+    width: 100%;
 }
 
-.checkbox-container input {
-    width: 18px;
+.toggle-container input {
+    display: none;
+}
+
+.toggle-slider {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    transition: 0.3s;
+    border: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.toggle-slider:before {
+    content: "";
+    position: absolute;
     height: 18px;
-    cursor: pointer;
-    accent-color: var(--primary);
+    width: 18px;
+    left: 2px;
+    bottom: 2px;
+    background-color: var(--text-muted);
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.toggle-container input:checked + .toggle-slider {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+.toggle-container input:checked + .toggle-slider:before {
+    transform: translateX(20px);
+    background-color: white;
 }
 
 .radio-group {

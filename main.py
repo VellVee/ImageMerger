@@ -42,7 +42,8 @@ async def merge_images(
     crop_data: str = Form("{}"),
     auto_remove_black_bars: str = Form("false"),
     direction: str = Form("vertical"),
-    output_format: str = Form("jxl")
+    output_format: str = Form("jxl"),
+    quality: int = Form(99)
 ):
     auto_remove = (auto_remove_black_bars.lower() == "true")
     crop_dict = json.loads(crop_data)
@@ -104,13 +105,27 @@ async def merge_images(
         data = buffer.tobytes()
         media_type = "image/png"
         ext = "png"
-    elif output_format == "webp":
-        _, buffer = cv2.imencode('.webp', cv2.cvtColor(merged, cv2.COLOR_RGB2BGR), [cv2.IMWRITE_WEBP_QUALITY, 99])
+    elif output_format == "jpg":
+        _, buffer = cv2.imencode('.jpg', cv2.cvtColor(merged, cv2.COLOR_RGB2BGR), [cv2.IMWRITE_JPEG_QUALITY, quality])
         data = buffer.tobytes()
+        media_type = "image/jpeg"
+        ext = "jpg"
+    elif output_format == "webp":
+        img_pil = Image.fromarray(merged)
+        buf = io.BytesIO()
+        if quality == 100:
+            img_pil.save(buf, format="WEBP", lossless=True)
+        else:
+            img_pil.save(buf, format="WEBP", quality=quality)
+        data = buf.getvalue()
         media_type = "image/webp"
         ext = "webp"
     else:
-        data = imagecodecs.jpegxl_encode(merged, lossless=False, distance=0.5)
+        if quality == 100:
+            data = imagecodecs.jpegxl_encode(merged, lossless=True)
+        else:
+            dist = max(0.01, (100 - quality) / 10.0)
+            data = imagecodecs.jpegxl_encode(merged, lossless=False, distance=dist)
         media_type = "image/jxl"
         ext = "jxl"
     

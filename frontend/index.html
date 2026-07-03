@@ -8,7 +8,8 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
+    <div class="layout-wrapper">
+        <div class="container">
         <header>
             <h1>Image Merger</h1>
             <p>Drag, drop, crop, and merge your images.</p>
@@ -16,36 +17,6 @@
             <button id="menu-toggle-btn" class="menu-toggle-btn">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"></path></svg>
             </button>
-            
-            <div id="settings-menu" class="settings-menu hidden">
-                <div class="controls">
-                    <label class="checkbox-container">
-                        <input type="checkbox" id="auto-remove-black-bars">
-                        <span class="checkmark"></span>
-                        Auto-remove Black Bars
-                    </label>
-                    
-                    <div class="radio-group">
-                        <label>
-                            <input type="radio" name="direction" value="vertical" checked>
-                            Vertical
-                        </label>
-                        <label>
-                            <input type="radio" name="direction" value="horizontal">
-                            Horizontal
-                        </label>
-                    </div>
-
-                    <div class="format-group">
-                        <label>Output Format:</label>
-                        <select id="output-format">
-                            <option value="jxl">JXL (99%)</option>
-                            <option value="webp">WebP (99%)</option>
-                            <option value="png">PNG (Lossless)</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
         </header>
 
         <main>
@@ -62,6 +33,45 @@
                 <input type="file" id="file-input" multiple accept="image/*">
             </div>
         </main>
+    </div>
+
+    <!-- Settings Panel -->
+    <aside id="settings-panel" class="settings-panel hidden">
+        <h2>Settings</h2>
+        <div class="controls">
+            <label class="toggle-container">
+                <input type="checkbox" id="auto-remove-black-bars">
+                <span class="toggle-slider"></span>
+                <span>Auto-remove Black Bars</span>
+            </label>
+            
+            <div class="radio-group">
+                <label>
+                    <input type="radio" name="direction" value="vertical" checked>
+                    Vertical
+                </label>
+                <label>
+                    <input type="radio" name="direction" value="horizontal">
+                    Horizontal
+                </label>
+            </div>
+
+            <div class="format-group">
+                <label>Output Format:</label>
+                <select id="output-format">
+                    <option value="jxl">JXL</option>
+                    <option value="webp">WebP</option>
+                    <option value="jpg">JPG</option>
+                    <option value="png">PNG (Lossless)</option>
+                </select>
+            </div>
+            
+            <div class="quality-group" id="quality-group">
+                <label style="display: flex; justify-content: space-between;"><span>Quality:</span> <span id="quality-value">99</span></label>
+                <input type="range" id="quality-slider" min="1" max="100" value="99">
+            </div>
+        </div>
+    </aside>
     </div>
 
     <!-- Crop Modal -->
