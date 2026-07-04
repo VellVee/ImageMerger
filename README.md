@@ -13,7 +13,7 @@ A simple, fast web application for merging images with cropping support.
 ## Requirements
 
 - Python 3.8+
-- [imageio](https://imageio.readthedocs.io/)
+- [imagecodecs](https://github.com/cgohlke/imagecodecs)
 - [OpenCV](https://opencv.org/)
 - [Pillow (PIL)](https://python-pillow.org/)
 - [FastAPI](https://fastapi.tiangolo.com/)

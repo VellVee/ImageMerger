@@ -3,7 +3,6 @@ const fileInput = document.getElementById('file-input');
 const gallery = document.getElementById('gallery');
 const mergeBtn = document.getElementById('merge-btn');
 const autoRemoveCheck = document.getElementById('auto-remove-black-bars');
-const settingsPanel = document.getElementById('settings-panel');
 
 const outputFormatSelect = document.getElementById('output-format');
 const qualityGroup = document.getElementById('quality-group');
@@ -88,7 +87,7 @@ function saveSettings() {
 // Add event listeners for settings
 autoRemoveCheck.addEventListener('change', saveSettings);
 document.querySelectorAll('input[name="direction"]').forEach(r => r.addEventListener('change', saveSettings));
-outputFormatSelect.addEventListener('change', (e) => {
+outputFormatSelect.addEventListener('change', () => {
     // When format changes, load its saved quality
     qualitySlider.value = currentSettings.quality[outputFormatSelect.value] || '99';
     updateQualityDisplay();
@@ -109,6 +108,19 @@ if (themeSelect) {
 // Initialize state
 loadSettings();
 
+// Toast notification system
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('visible'));
+    setTimeout(() => {
+        toast.classList.remove('visible');
+        toast.addEventListener('transitionend', () => toast.remove());
+    }, 4000);
+}
+
 const cropModal = document.getElementById('crop-modal');
 const cropImage = document.getElementById('crop-image');
 const cancelCropBtn = document.getElementById('cancel-crop-btn');
@@ -123,7 +135,6 @@ const cropRight = document.getElementById('crop-right');
 let filesMap = new Map(); // filename -> File object
 let cropDataMap = new Map(); // filename -> crop data object
 let currentCropFilename = null;
-let cropper = null;
 
 // Initialize Sortable
 new Sortable(gallery, {
@@ -220,6 +231,7 @@ async function renderGalleryItem(filename, file) {
     deleteBtn.className = 'btn-icon delete';
     deleteBtn.textContent = '✕';
     deleteBtn.onclick = () => {
+        if (img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
         filesMap.delete(filename);
         cropDataMap.delete(filename);
         div.remove();
@@ -242,6 +254,9 @@ function updateMergeButton() {
 
 if (removeAllBtn) {
     removeAllBtn.addEventListener('click', () => {
+        gallery.querySelectorAll('.gallery-item img').forEach(img => {
+            if (img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+        });
         filesMap.clear();
         cropDataMap.clear();
         gallery.innerHTML = '';
@@ -406,6 +421,8 @@ function updateCropFromInteraction(e) {
     updateCropVisuals();
 }
 
+let autoScrollInterval = null;
+
 // Global Interaction Events
 window.addEventListener('pointermove', (e) => {
     if (e.buttons === 0) {
@@ -420,6 +437,7 @@ window.addEventListener('pointermove', (e) => {
         const deltaY = e.clientY - interactionStartPointer.y;
         if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
             interactionState = 'RESIZE_BOX';
+            // Direction is intentionally inverted: flick away from the edge you want to trim
             if (Math.abs(deltaY) > Math.abs(deltaX)) {
                 resizeDirection = deltaY > 0 ? 'n' : 's';
             } else {
@@ -452,8 +470,6 @@ window.addEventListener('pointermove', (e) => {
         }
     }
 });
-
-let autoScrollInterval = null;
 
 window.addEventListener('pointerup', () => {
     interactionState = 'IDLE';
@@ -596,7 +612,9 @@ saveCropBtn.addEventListener('click', () => {
     if (currentCropFilename) {
         cropDataMap.set(currentCropFilename, { ...cropData });
 
-        const item = gallery.querySelector(`[data-filename="${currentCropFilename}"] img`);
+        const item = [...gallery.querySelectorAll('.gallery-item')]
+            .find(el => el.dataset.filename === currentCropFilename)
+            ?.querySelector('img');
         if (item) {
             const canvas = document.createElement('canvas');
             canvas.width = cropData.width;
@@ -616,12 +634,7 @@ saveCropBtn.addEventListener('click', () => {
 });
 
 function generateRandomName() {
-    const chars = 'abcdefghijklmnopqrstuvwxyz123456789';
-    let result = '';
-    for (let i = 0; i < 16; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
+    return crypto.randomUUID().replace(/-/g, '').slice(0, 16);
 }
 
 // Merge
@@ -650,7 +663,7 @@ mergeBtn.addEventListener('click', async () => {
     const direction = document.querySelector('input[name="direction"]:checked').value;
     formData.append('direction', direction);
 
-    const outputFormat = document.getElementById('output-format').value;
+    const outputFormat = outputFormatSelect.value;
     formData.append('output_format', outputFormat);
     formData.append('quality', qualitySlider.value);
 
@@ -672,10 +685,11 @@ mergeBtn.addEventListener('click', async () => {
         a.download = `${generateRandomName()}.${outputFormat}`;
         document.body.appendChild(a);
         a.click();
+        a.remove();
         window.URL.revokeObjectURL(url);
     } catch (error) {
         console.error(error);
-        alert('An error occurred during merging.');
+        showToast('An error occurred during merging.', 'error');
     } finally {
         mergeBtn.disabled = false;
         mergeBtn.textContent = originalText;

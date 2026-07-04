@@ -3,8 +3,8 @@ import json
 import io
 import cv2
 import numpy as np
-from fastapi import FastAPI, File, UploadFile, Form
-from fastapi.responses import Response, FileResponse
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
@@ -12,27 +12,62 @@ import imagecodecs
 
 app = FastAPI()
 
+allowed_origins = os.environ.get("CORS_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
-os.makedirs(frontend_dir, exist_ok=True)
+
+MAX_FILE_SIZE = 100 * 1024 * 1024  # 100 MB per file
 
 def to_uint8(img):
     if img.dtype == np.uint8:
         return img
     elif img.dtype == np.uint16:
         return (img / 257.0).astype(np.uint8)
-    elif img.dtype == np.float32 or img.dtype == np.float64:
+    elif img.dtype in (np.float32, np.float64):
         # Some JXL floats might be 0-255 or 0-1, safely check max
         if img.max() > 1.0:
             return np.clip(img, 0, 255).astype(np.uint8)
         return (np.clip(img, 0.0, 1.0) * 255).astype(np.uint8)
     return img.astype(np.uint8)
+
+def decode_image(contents: bytes, filename: str = "") -> np.ndarray:
+    """Decode image bytes to a BGR uint8 numpy array.
+    
+    Tries cv2.imdecode first, then imagecodecs (for JXL and other formats
+    cv2 can't handle), then PIL as a final fallback.
+    Raises HTTPException(400) on failure.
+    """
+    nparr = np.frombuffer(contents, np.uint8)
+    img_cv = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    
+    if img_cv is not None:
+        return to_uint8(img_cv)
+    
+    try:
+        # imagecodecs.imread accepts bytes and detects the codec internally
+        img_decoded = imagecodecs.imread(contents)
+        img_decoded = to_uint8(img_decoded)
+        if len(img_decoded.shape) == 3 and img_decoded.shape[2] == 3:
+            return cv2.cvtColor(img_decoded, cv2.COLOR_RGB2BGR)
+        elif len(img_decoded.shape) == 3 and img_decoded.shape[2] == 4:
+            return cv2.cvtColor(img_decoded, cv2.COLOR_RGBA2BGR)
+        elif len(img_decoded.shape) == 2:
+            return cv2.cvtColor(img_decoded, cv2.COLOR_GRAY2BGR)
+        return img_decoded
+    except Exception:
+        pass
+    
+    try:
+        pil_img = Image.open(io.BytesIO(contents)).convert('RGB')
+        return cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+    except Exception:
+        raise HTTPException(status_code=400, detail=f"Failed to decode image {filename}")
 
 def remove_black_bars(img_cv):
     gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
@@ -51,29 +86,10 @@ def remove_black_bars(img_cv):
 @app.post("/api/thumbnail")
 async def get_thumbnail(file: UploadFile = File(...)):
     contents = await file.read()
-    nparr = np.frombuffer(contents, np.uint8)
-    img_cv = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    if len(contents) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File too large")
     
-    if img_cv is not None:
-        img_cv = to_uint8(img_cv)
-    else:
-        try:
-            img_decoded = imagecodecs.imread(contents)
-            img_decoded = to_uint8(img_decoded)
-            if len(img_decoded.shape) == 3 and img_decoded.shape[2] == 3:
-                img_cv = cv2.cvtColor(img_decoded, cv2.COLOR_RGB2BGR)
-            elif len(img_decoded.shape) == 3 and img_decoded.shape[2] == 4:
-                img_cv = cv2.cvtColor(img_decoded, cv2.COLOR_RGBA2BGR)
-            elif len(img_decoded.shape) == 2:
-                img_cv = cv2.cvtColor(img_decoded, cv2.COLOR_GRAY2BGR)
-            else:
-                img_cv = img_decoded
-        except Exception:
-            try:
-                pil_img = Image.open(io.BytesIO(contents)).convert('RGB')
-                img_cv = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
-            except Exception:
-                return Response(status_code=400, content="Failed to decode image")
+    img_cv = decode_image(contents, file.filename or "")
                 
     _, buffer = cv2.imencode('.webp', img_cv, [cv2.IMWRITE_WEBP_QUALITY, 85])
     return Response(content=buffer.tobytes(), media_type="image/webp")
@@ -88,52 +104,45 @@ async def merge_images(
     quality: int = Form(99)
 ):
     auto_remove = (auto_remove_black_bars.lower() == "true")
-    crop_dict = json.loads(crop_data)
+    
+    try:
+        crop_dict = json.loads(crop_data)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid crop_data JSON")
     
     processed_images = []
     
     for file in files:
         contents = await file.read()
-        nparr = np.frombuffer(contents, np.uint8)
-        img_cv = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if len(contents) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=413, detail=f"File too large: {file.filename}")
         
-        if img_cv is not None:
-            img_cv = to_uint8(img_cv)
-        else:
-            try:
-                img_decoded = imagecodecs.imread(contents)
-                img_decoded = to_uint8(img_decoded)
-                if len(img_decoded.shape) == 3 and img_decoded.shape[2] == 3:
-                    img_cv = cv2.cvtColor(img_decoded, cv2.COLOR_RGB2BGR)
-                elif len(img_decoded.shape) == 3 and img_decoded.shape[2] == 4:
-                    img_cv = cv2.cvtColor(img_decoded, cv2.COLOR_RGBA2BGR)
-                elif len(img_decoded.shape) == 2:
-                    img_cv = cv2.cvtColor(img_decoded, cv2.COLOR_GRAY2BGR)
-                else:
-                    img_cv = img_decoded
-            except Exception:
-                try:
-                    pil_img = Image.open(io.BytesIO(contents)).convert('RGB')
-                    img_cv = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
-                except Exception:
-                    return Response(status_code=400, content=f"Failed to decode image {file.filename}")
+        img_cv = decode_image(contents, file.filename or "")
         
-        # Apply crop if present
+        # Apply crop if present, with bounds validation
         if file.filename in crop_dict:
             c = crop_dict[file.filename]
-            x, y, w, h = int(c['x']), int(c['y']), int(c['width']), int(c['height'])
+            img_h, img_w = img_cv.shape[:2]
+            x = max(0, int(c['x']))
+            y = max(0, int(c['y']))
+            w = int(c['width'])
+            h = int(c['height'])
+            # Clamp to image bounds
+            x = min(x, img_w - 1)
+            y = min(y, img_h - 1)
+            w = max(1, min(w, img_w - x))
+            h = max(1, min(h, img_h - y))
             img_cv = img_cv[y:y+h, x:x+w]
             
         if auto_remove:
             img_cv = remove_black_bars(img_cv)
             
-        # Convert to PIL Image for easier concatenation later, or keep as numpy
-        # Let's keep as numpy for now, but ensure it's RGB
+        # Convert to RGB for merging
         img_rgb = cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB)
         processed_images.append(img_rgb)
         
     if not processed_images:
-        return Response(status_code=400, content="No images processed")
+        raise HTTPException(status_code=400, detail="No images processed")
         
     # Merge images
     if len(processed_images) == 1:
