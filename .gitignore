@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 *.so
 
+
 # Virtual Environment
 venv/
 env/
@@ -24,3 +25,4 @@ env/
 # Temporary uploads/processing files (if any are saved locally)
 uploads/
 temp/
+test_*

@@ -22,6 +22,18 @@ app.add_middleware(
 frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
 os.makedirs(frontend_dir, exist_ok=True)
 
+def to_uint8(img):
+    if img.dtype == np.uint8:
+        return img
+    elif img.dtype == np.uint16:
+        return (img / 257.0).astype(np.uint8)
+    elif img.dtype == np.float32 or img.dtype == np.float64:
+        # Some JXL floats might be 0-255 or 0-1, safely check max
+        if img.max() > 1.0:
+            return np.clip(img, 0, 255).astype(np.uint8)
+        return (np.clip(img, 0.0, 1.0) * 255).astype(np.uint8)
+    return img.astype(np.uint8)
+
 def remove_black_bars(img_cv):
     gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
     _, thresh = cv2.threshold(gray, 1, 255, cv2.THRESH_BINARY)
@@ -35,6 +47,36 @@ def remove_black_bars(img_cv):
     
     # Crop
     return img_cv[y:y+h, x:x+w]
+
+@app.post("/api/thumbnail")
+async def get_thumbnail(file: UploadFile = File(...)):
+    contents = await file.read()
+    nparr = np.frombuffer(contents, np.uint8)
+    img_cv = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    
+    if img_cv is not None:
+        img_cv = to_uint8(img_cv)
+    else:
+        try:
+            img_decoded = imagecodecs.imread(contents)
+            img_decoded = to_uint8(img_decoded)
+            if len(img_decoded.shape) == 3 and img_decoded.shape[2] == 3:
+                img_cv = cv2.cvtColor(img_decoded, cv2.COLOR_RGB2BGR)
+            elif len(img_decoded.shape) == 3 and img_decoded.shape[2] == 4:
+                img_cv = cv2.cvtColor(img_decoded, cv2.COLOR_RGBA2BGR)
+            elif len(img_decoded.shape) == 2:
+                img_cv = cv2.cvtColor(img_decoded, cv2.COLOR_GRAY2BGR)
+            else:
+                img_cv = img_decoded
+        except Exception:
+            try:
+                pil_img = Image.open(io.BytesIO(contents)).convert('RGB')
+                img_cv = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+            except Exception:
+                return Response(status_code=400, content="Failed to decode image")
+                
+    _, buffer = cv2.imencode('.webp', img_cv, [cv2.IMWRITE_WEBP_QUALITY, 85])
+    return Response(content=buffer.tobytes(), media_type="image/webp")
 
 @app.post("/api/merge")
 async def merge_images(
@@ -54,6 +96,27 @@ async def merge_images(
         contents = await file.read()
         nparr = np.frombuffer(contents, np.uint8)
         img_cv = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if img_cv is not None:
+            img_cv = to_uint8(img_cv)
+        else:
+            try:
+                img_decoded = imagecodecs.imread(contents)
+                img_decoded = to_uint8(img_decoded)
+                if len(img_decoded.shape) == 3 and img_decoded.shape[2] == 3:
+                    img_cv = cv2.cvtColor(img_decoded, cv2.COLOR_RGB2BGR)
+                elif len(img_decoded.shape) == 3 and img_decoded.shape[2] == 4:
+                    img_cv = cv2.cvtColor(img_decoded, cv2.COLOR_RGBA2BGR)
+                elif len(img_decoded.shape) == 2:
+                    img_cv = cv2.cvtColor(img_decoded, cv2.COLOR_GRAY2BGR)
+                else:
+                    img_cv = img_decoded
+            except Exception:
+                try:
+                    pil_img = Image.open(io.BytesIO(contents)).convert('RGB')
+                    img_cv = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+                except Exception:
+                    return Response(status_code=400, content=f"Failed to decode image {file.filename}")
         
         # Apply crop if present
         if file.filename in crop_dict:

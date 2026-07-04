@@ -18,7 +18,7 @@ const qualityValue = document.getElementById('quality-value');
 function updateQualityDisplay() {
     const format = outputFormatSelect.value;
     const val = parseInt(qualitySlider.value, 10);
-    
+
     if (format === 'png') {
         qualityGroup.style.display = 'none';
     } else {
@@ -81,63 +81,83 @@ dropZone.addEventListener('drop', (e) => {
     handleFiles(files);
 });
 
-fileInput.addEventListener('change', function() {
+fileInput.addEventListener('change', function () {
     handleFiles(this.files);
 });
 
-function handleFiles(files) {
-    [...files].forEach(file => {
-        if (file.type.startsWith('image/')) {
+async function handleFiles(files) {
+    for (const file of [...files]) {
+        if (file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.jxl')) {
             // Generate unique name if collision
             let name = file.name;
             let counter = 1;
-            while(filesMap.has(name)) {
+            while (filesMap.has(name)) {
                 name = `${counter}_${file.name}`;
                 counter++;
             }
             filesMap.set(name, file);
-            renderGalleryItem(name, file);
+            await renderGalleryItem(name, file);
         }
-    });
+    }
     updateMergeButton();
 }
 
-function renderGalleryItem(filename, file) {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onloadend = () => {
-        const div = document.createElement('div');
-        div.className = 'gallery-item';
-        div.dataset.filename = filename;
+async function renderGalleryItem(filename, file) {
+    let src = '';
 
-        const img = document.createElement('img');
-        img.src = reader.result;
-        
-        const actionsDiv = document.createElement('div');
-        actionsDiv.className = 'item-actions';
+    if (file.name.toLowerCase().endsWith('.jxl')) {
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+            const res = await fetch('/api/thumbnail', { method: 'POST', body: formData });
+            if (res.ok) {
+                const blob = await res.blob();
+                src = URL.createObjectURL(blob);
+            }
+        } catch (e) {
+            console.error('Failed to get JXL thumbnail:', e);
+        }
+    }
 
-        const cropBtn = document.createElement('button');
-        cropBtn.className = 'btn-icon';
-        cropBtn.textContent = 'Crop';
-        cropBtn.onclick = () => openCropModal(filename, reader.result);
+    if (!src) {
+        src = await new Promise(resolve => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(file);
+        });
+    }
 
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'btn-icon delete';
-        deleteBtn.textContent = '✕';
-        deleteBtn.onclick = () => {
-            filesMap.delete(filename);
-            cropDataMap.delete(filename);
-            div.remove();
-            updateMergeButton();
-        };
+    const div = document.createElement('div');
+    div.className = 'gallery-item';
+    div.dataset.filename = filename;
 
-        actionsDiv.appendChild(cropBtn);
-        actionsDiv.appendChild(deleteBtn);
+    const img = document.createElement('img');
+    img.src = src;
 
-        div.appendChild(img);
-        div.appendChild(actionsDiv);
-        gallery.appendChild(div);
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'item-actions';
+
+    const cropBtn = document.createElement('button');
+    cropBtn.className = 'btn-icon';
+    cropBtn.textContent = 'Crop';
+    cropBtn.onclick = () => openCropModal(filename, src);
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn-icon delete';
+    deleteBtn.textContent = '✕';
+    deleteBtn.onclick = () => {
+        filesMap.delete(filename);
+        cropDataMap.delete(filename);
+        div.remove();
+        updateMergeButton();
     };
+
+    actionsDiv.appendChild(cropBtn);
+    actionsDiv.appendChild(deleteBtn);
+
+    div.appendChild(img);
+    div.appendChild(actionsDiv);
+    gallery.appendChild(div);
 }
 
 function updateMergeButton() {
@@ -181,35 +201,35 @@ function updateCropVisuals() {
     const sY = cropData.y * scale;
     const sW = cropData.width * scale;
     const sH = cropData.height * scale;
-    
+
     customCropBox.style.left = `${sX}px`;
     customCropBox.style.top = `${sY}px`;
     customCropBox.style.width = `${sW}px`;
     customCropBox.style.height = `${sH}px`;
-    
+
     const totalW = imgNaturalWidth * scale;
     const totalH = imgNaturalHeight * scale;
-    
+
     overlayTop.style.top = '0';
     overlayTop.style.left = '0';
     overlayTop.style.width = `${totalW}px`;
     overlayTop.style.height = `${sY}px`;
-    
+
     overlayBottom.style.top = `${sY + sH}px`;
     overlayBottom.style.left = '0';
     overlayBottom.style.width = `${totalW}px`;
     overlayBottom.style.height = `${totalH - (sY + sH)}px`;
-    
+
     overlayLeft.style.top = `${sY}px`;
     overlayLeft.style.left = '0';
     overlayLeft.style.width = `${sX}px`;
     overlayLeft.style.height = `${sH}px`;
-    
+
     overlayRight.style.top = `${sY}px`;
     overlayRight.style.left = `${sX + sW}px`;
     overlayRight.style.width = `${totalW - (sX + sW)}px`;
     overlayRight.style.height = `${sH}px`;
-    
+
     cropTop.value = Math.round(cropData.y);
     cropBottom.value = Math.round(imgNaturalHeight - cropData.y - cropData.height);
     cropLeft.value = Math.round(cropData.x);
@@ -218,13 +238,13 @@ function updateCropVisuals() {
 
 function updateCropFromInteraction(e) {
     if (interactionState === 'IDLE' || !interactionStartCropData) return;
-    
+
     const scale = currentZoomPercent / 100;
     const deltaX = (e.clientX - interactionStartPointer.x) / scale;
     const deltaY = (e.clientY - interactionStartPointer.y) / scale;
-    
+
     let newD = { ...interactionStartCropData };
-    
+
     if (interactionState === 'MOVE_BOX') {
         newD.x += deltaX;
         newD.y += deltaY;
@@ -243,7 +263,7 @@ function updateCropFromInteraction(e) {
         if (resizeDirection.includes('e')) {
             newD.width += deltaX;
         }
-        
+
         if (e.shiftKey) {
             if (resizeDirection === 'n' || resizeDirection === 's') {
                 newD.width = Math.abs(newD.height);
@@ -262,12 +282,34 @@ function updateCropFromInteraction(e) {
             }
         }
     }
-    
-    if (newD.width < 1) newD.width = 1;
-    if (newD.height < 1) newD.height = 1;
-    if (newD.x < 0) newD.x = 0;
-    if (newD.y < 0) newD.y = 0;
-    
+
+    // 1. Enforce minimum dimensions (1x1)
+    if (newD.width < 1) {
+        if (interactionState === 'RESIZE_BOX' && resizeDirection.includes('w')) {
+            newD.x -= (1 - newD.width);
+        }
+        newD.width = 1;
+    }
+    if (newD.height < 1) {
+        if (interactionState === 'RESIZE_BOX' && resizeDirection.includes('n')) {
+            newD.y -= (1 - newD.height);
+        }
+        newD.height = 1;
+    }
+
+    // 2. Enforce boundaries
+    if (newD.x < 0) {
+        if (interactionState === 'RESIZE_BOX' && resizeDirection.includes('w')) {
+            newD.width += newD.x;
+        }
+        newD.x = 0;
+    }
+    if (newD.y < 0) {
+        if (interactionState === 'RESIZE_BOX' && resizeDirection.includes('n')) {
+            newD.height += newD.y;
+        }
+        newD.y = 0;
+    }
     if (newD.x + newD.width > imgNaturalWidth) {
         if (interactionState === 'MOVE_BOX') newD.x = imgNaturalWidth - newD.width;
         else newD.width = imgNaturalWidth - newD.x;
@@ -276,7 +318,16 @@ function updateCropFromInteraction(e) {
         if (interactionState === 'MOVE_BOX') newD.y = imgNaturalHeight - newD.height;
         else newD.height = imgNaturalHeight - newD.y;
     }
-    
+
+    // 3. Re-enforce square if shiftKey during resize
+    if (interactionState === 'RESIZE_BOX' && e.shiftKey) {
+        const minDim = Math.min(newD.width, newD.height);
+        if (resizeDirection.includes('n')) newD.y += (newD.height - minDim);
+        if (resizeDirection.includes('w')) newD.x += (newD.width - minDim);
+        newD.width = minDim;
+        newD.height = minDim;
+    }
+
     cropData = newD;
     updateCropVisuals();
 }
@@ -289,7 +340,7 @@ window.addEventListener('pointermove', (e) => {
         return;
     }
     lastPointerEvent = e;
-    
+
     if (interactionState === 'RIGHT_CLICK_DOWN') {
         const deltaX = e.clientX - interactionStartPointer.x;
         const deltaY = e.clientY - interactionStartPointer.y;
@@ -304,19 +355,19 @@ window.addEventListener('pointermove', (e) => {
             interactionStartCropData = { ...cropData };
         }
     }
-    
+
     if (interactionState !== 'IDLE' && interactionState !== 'RIGHT_CLICK_DOWN') {
         updateCropFromInteraction(e);
     }
-    
+
     // Auto-scroll when dragging near edges
     if (interactionState !== 'IDLE') {
         const rect = cropWrapper.getBoundingClientRect();
-        const scrollZone = 50; 
+        const scrollZone = 50;
         let scrollSpeed = 0;
         if (e.clientY < rect.top + scrollZone) scrollSpeed = -15;
         else if (e.clientY > rect.bottom - scrollZone) scrollSpeed = 15;
-        
+
         if (scrollSpeed !== 0) {
             if (!autoScrollInterval) {
                 autoScrollInterval = setInterval(() => { cropWrapper.scrollTop += scrollSpeed; }, 16);
@@ -362,7 +413,7 @@ cropWorkspace.addEventListener('pointerdown', (e) => {
         interactionState = 'RIGHT_CLICK_DOWN';
         e.preventDefault();
     }
-    
+
     if (interactionState !== 'IDLE') {
         interactionStartPointer = { x: e.clientX, y: e.clientY };
         interactionStartCropData = { ...cropData };
@@ -373,10 +424,10 @@ cropWorkspace.addEventListener('pointerdown', (e) => {
 cropWrapper.addEventListener('wheel', (e) => {
     if (!currentCropFilename) return;
     if (!e.ctrlKey && !e.metaKey) return;
-    
+
     e.preventDefault();
     const oldZoomPercent = currentZoomPercent;
-    
+
     let zoomStep = currentZoomPercent > 50 ? 10 : 2;
     if (currentZoomPercent < 10) zoomStep = 0.5;
     if (e.deltaY > 0) {
@@ -384,27 +435,27 @@ cropWrapper.addEventListener('wheel', (e) => {
     } else {
         currentZoomPercent = Math.min(2000, currentZoomPercent + zoomStep);
     }
-    
+
     if (oldZoomPercent === currentZoomPercent) return;
-    
+
     const wrapperRect = cropWrapper.getBoundingClientRect();
     const pointerY = e.clientY - wrapperRect.top;
     const pointerX = e.clientX - wrapperRect.left;
-    
+
     const pixelY = cropWrapper.scrollTop + pointerY;
     const pixelX = cropWrapper.scrollLeft + pointerX;
-    
+
     const naturalY = pixelY / (oldZoomPercent / 100);
     const naturalX = pixelX / (oldZoomPercent / 100);
-    
+
     const newPixelY = naturalY * (currentZoomPercent / 100);
     const newPixelX = naturalX * (currentZoomPercent / 100);
-    
+
     cropWorkspace.style.width = `${imgNaturalWidth * (currentZoomPercent / 100)}px`;
     cropWorkspace.style.height = `${imgNaturalHeight * (currentZoomPercent / 100)}px`;
-    
+
     updateCropVisuals();
-    
+
     cropWrapper.scrollTop = newPixelY - pointerY;
     cropWrapper.scrollLeft = newPixelX - pointerX;
 }, { passive: false, capture: true });
@@ -417,12 +468,12 @@ function openCropModal(filename, src) {
     const initCropper = () => {
         imgNaturalWidth = cropImage.naturalWidth;
         imgNaturalHeight = cropImage.naturalHeight;
-        
+
         const wrapperRect = cropWrapper.getBoundingClientRect();
         const scaleX = (wrapperRect.width - 40) / imgNaturalWidth;
         const scaleY = (wrapperRect.height - 40) / imgNaturalHeight;
         const fitPercent = Math.min(scaleX, scaleY, 1) * 100;
-        
+
         currentZoomPercent = fitPercent;
         minZoomPercent = fitPercent;
 
@@ -434,7 +485,7 @@ function openCropModal(filename, src) {
         } else {
             cropData = { x: 0, y: 0, width: imgNaturalWidth, height: imgNaturalHeight };
         }
-        
+
         updateCropVisuals();
     };
 
@@ -449,15 +500,15 @@ function openCropModal(filename, src) {
         const bottom = parseFloat(cropBottom.value) || 0;
         const left = parseFloat(cropLeft.value) || 0;
         const right = parseFloat(cropRight.value) || 0;
-        
+
         cropData.x = left;
         cropData.y = top;
         cropData.width = imgNaturalWidth - left - right;
         cropData.height = imgNaturalHeight - top - bottom;
-        
+
         if (cropData.width < 1) cropData.width = 1;
         if (cropData.height < 1) cropData.height = 1;
-        
+
         updateCropVisuals();
     });
 });
@@ -470,7 +521,7 @@ cancelCropBtn.addEventListener('click', () => {
 saveCropBtn.addEventListener('click', () => {
     if (currentCropFilename) {
         cropDataMap.set(currentCropFilename, { ...cropData });
-        
+
         const item = gallery.querySelector(`[data-filename="${currentCropFilename}"] img`);
         if (item) {
             const canvas = document.createElement('canvas');
@@ -478,7 +529,7 @@ saveCropBtn.addEventListener('click', () => {
             canvas.height = cropData.height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(
-                cropImage, 
+                cropImage,
                 cropData.x, cropData.y, cropData.width, cropData.height,
                 0, 0, cropData.width, cropData.height
             );
@@ -508,7 +559,7 @@ mergeBtn.addEventListener('click', async () => {
     mergeBtn.textContent = 'Processing...';
 
     const formData = new FormData();
-    
+
     // Get ordered filenames from the DOM
     const items = gallery.querySelectorAll('.gallery-item');
     items.forEach(item => {
@@ -521,10 +572,10 @@ mergeBtn.addEventListener('click', async () => {
 
     formData.append('crop_data', JSON.stringify(Object.fromEntries(cropDataMap)));
     formData.append('auto_remove_black_bars', autoRemoveCheck.checked);
-    
+
     const direction = document.querySelector('input[name="direction"]:checked').value;
     formData.append('direction', direction);
-    
+
     const outputFormat = document.getElementById('output-format').value;
     formData.append('output_format', outputFormat);
     formData.append('quality', qualitySlider.value);
