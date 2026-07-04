@@ -1,5 +1,6 @@
 :root {
     --bg-dark: #0f172a;
+    --bg-gradient-end: #1e1b4b;
     --bg-card: rgba(30, 41, 59, 0.7);
     --primary: #6366f1;
     --primary-hover: #4f46e5;
@@ -7,6 +8,51 @@
     --text-muted: #94a3b8;
     --border-color: rgba(255, 255, 255, 0.1);
     --danger: #ef4444;
+    --img-bg: #000;
+    --input-bg: rgba(0, 0, 0, 0.3);
+    --modal-overlay: rgba(0, 0, 0, 0.8);
+    --crop-overlay: rgba(0, 0, 0, 0.6);
+    --btn-icon-color: #fff;
+    --btn-icon-bg: rgba(255, 255, 255, 0.2);
+    --item-actions-grad: rgba(0,0,0,0.8);
+}
+
+[data-theme="trueblack"] {
+    --bg-dark: #000000;
+    --bg-gradient-end: #050505;
+    --bg-card: rgba(10, 10, 10, 0.9);
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
+    --text-main: #ffffff;
+    --text-muted: #a1a1aa;
+    --border-color: rgba(255, 255, 255, 0.15);
+    --danger: #ef4444;
+    --img-bg: #000;
+    --input-bg: rgba(255, 255, 255, 0.05);
+    --modal-overlay: rgba(0, 0, 0, 0.9);
+    --crop-overlay: rgba(0, 0, 0, 0.8);
+    --btn-icon-color: #fff;
+    --btn-icon-bg: rgba(255, 255, 255, 0.2);
+    --item-actions-grad: rgba(0,0,0,0.9);
+}
+
+[data-theme="light"] {
+    --bg-dark: #f1f5f9;
+    --bg-gradient-end: #e2e8f0;
+    --bg-card: rgba(255, 255, 255, 0.8);
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --border-color: rgba(0, 0, 0, 0.1);
+    --danger: #dc2626;
+    --img-bg: #e2e8f0;
+    --input-bg: rgba(255, 255, 255, 0.8);
+    --modal-overlay: rgba(255, 255, 255, 0.8);
+    --crop-overlay: rgba(255, 255, 255, 0.6);
+    --btn-icon-color: #0f172a;
+    --btn-icon-bg: rgba(0, 0, 0, 0.1);
+    --item-actions-grad: rgba(255,255,255,0.9);
 }
 
 * {
@@ -17,7 +63,7 @@
 
 body {
     font-family: 'Inter', sans-serif;
-    background: linear-gradient(135deg, var(--bg-dark), #1e1b4b);
+    background: linear-gradient(135deg, var(--bg-dark), var(--bg-gradient-end));
     color: var(--text-main);
     min-height: 100vh;
     display: flex;
@@ -248,7 +294,7 @@ header p {
 }
 
 .format-group select {
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--input-bg);
     border: 1px solid var(--border-color);
     color: var(--text-main);
     padding: 0.5rem;
@@ -268,7 +314,7 @@ header p {
     position: relative;
     border-radius: 12px;
     overflow: hidden;
-    background: #000;
+    background: var(--img-bg);
     aspect-ratio: 1 / 1;
     cursor: grab;
     border: 2px solid transparent;
@@ -289,7 +335,7 @@ header p {
     height: 100%;
     object-fit: contain;
     display: block;
-    background: #000;
+    background: var(--img-bg);
 }
 
 .item-actions {
@@ -298,7 +344,7 @@ header p {
     left: 0;
     width: 100%;
     padding: 0.75rem;
-    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    background: linear-gradient(to top, var(--item-actions-grad), transparent);
     display: flex;
     justify-content: space-between;
     opacity: 0;
@@ -310,9 +356,9 @@ header p {
 }
 
 .btn-icon {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--btn-icon-bg);
     border: none;
-    color: #fff;
+    color: var(--btn-icon-color);
     padding: 0.5rem 1rem;
     border-radius: 8px;
     cursor: pointer;
@@ -403,7 +449,7 @@ header p {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: var(--modal-overlay);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -439,7 +485,7 @@ header p {
     width: 100%;
     margin-bottom: 1.5rem;
     overflow: auto;
-    background: #000;
+    background: var(--img-bg);
     border-radius: 8px;
 }
 
@@ -460,7 +506,7 @@ header p {
 
 .custom-crop-overlay {
     position: absolute;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--crop-overlay);
     pointer-events: none;
 }
 
@@ -552,7 +598,7 @@ header p {
 }
 
 .crop-inputs input {
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--input-bg);
     border: 1px solid var(--border-color);
     color: var(--text-main);
     padding: 0.5rem;

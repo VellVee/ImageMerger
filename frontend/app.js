@@ -9,6 +9,7 @@ const outputFormatSelect = document.getElementById('output-format');
 const qualityGroup = document.getElementById('quality-group');
 const qualitySlider = document.getElementById('quality-slider');
 const qualityValue = document.getElementById('quality-value');
+const themeSelect = document.getElementById('theme-select');
 
 function updateQualityDisplay() {
     const format = outputFormatSelect.value;
@@ -26,9 +27,87 @@ function updateQualityDisplay() {
     }
 }
 
-outputFormatSelect.addEventListener('change', updateQualityDisplay);
-qualitySlider.addEventListener('input', updateQualityDisplay);
-updateQualityDisplay(); // Initialize state
+// Settings management
+const SETTINGS_KEY = 'image_merger_settings';
+const defaultSettings = {
+    autoRemoveBlackBars: false,
+    direction: 'vertical',
+    outputFormat: 'jxl',
+    quality: {
+        jxl: '95',
+        webp: '99',
+        jpg: '90',
+        png: '100'
+    },
+    theme: 'dark'
+};
+
+let currentSettings = JSON.parse(JSON.stringify(defaultSettings));
+
+function loadSettings() {
+    try {
+        const stored = localStorage.getItem(SETTINGS_KEY);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            if (typeof parsed.quality === 'string' || typeof parsed.quality === 'number') {
+                parsed.quality = {
+                    jxl: parsed.quality,
+                    webp: parsed.quality,
+                    jpg: parsed.quality,
+                    png: parsed.quality
+                };
+            }
+            currentSettings = { ...currentSettings, ...parsed };
+        }
+    } catch (e) {
+        console.error('Failed to load settings', e);
+    }
+
+    autoRemoveCheck.checked = currentSettings.autoRemoveBlackBars;
+    const dirRadio = document.querySelector(`input[name="direction"][value="${currentSettings.direction}"]`);
+    if (dirRadio) dirRadio.checked = true;
+    outputFormatSelect.value = currentSettings.outputFormat;
+    qualitySlider.value = currentSettings.quality[currentSettings.outputFormat] || '99';
+    if (themeSelect) themeSelect.value = currentSettings.theme;
+
+    document.documentElement.setAttribute('data-theme', currentSettings.theme);
+    updateQualityDisplay();
+}
+
+function saveSettings() {
+    const directionRadio = document.querySelector('input[name="direction"]:checked');
+    currentSettings.autoRemoveBlackBars = autoRemoveCheck.checked;
+    currentSettings.direction = directionRadio ? directionRadio.value : 'vertical';
+    currentSettings.outputFormat = outputFormatSelect.value;
+    currentSettings.quality[outputFormatSelect.value] = qualitySlider.value;
+    if (themeSelect) currentSettings.theme = themeSelect.value;
+
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(currentSettings));
+}
+
+// Add event listeners for settings
+autoRemoveCheck.addEventListener('change', saveSettings);
+document.querySelectorAll('input[name="direction"]').forEach(r => r.addEventListener('change', saveSettings));
+outputFormatSelect.addEventListener('change', (e) => {
+    // When format changes, load its saved quality
+    qualitySlider.value = currentSettings.quality[outputFormatSelect.value] || '99';
+    updateQualityDisplay();
+    saveSettings();
+});
+qualitySlider.addEventListener('input', () => {
+    currentSettings.quality[outputFormatSelect.value] = qualitySlider.value;
+    updateQualityDisplay();
+});
+qualitySlider.addEventListener('change', saveSettings);
+if (themeSelect) {
+    themeSelect.addEventListener('change', () => {
+        document.documentElement.setAttribute('data-theme', themeSelect.value);
+        saveSettings();
+    });
+}
+
+// Initialize state
+loadSettings();
 
 const cropModal = document.getElementById('crop-modal');
 const cropImage = document.getElementById('crop-image');
