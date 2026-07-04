@@ -3,12 +3,7 @@ const fileInput = document.getElementById('file-input');
 const gallery = document.getElementById('gallery');
 const mergeBtn = document.getElementById('merge-btn');
 const autoRemoveCheck = document.getElementById('auto-remove-black-bars');
-const menuToggleBtn = document.getElementById('menu-toggle-btn');
 const settingsPanel = document.getElementById('settings-panel');
-
-menuToggleBtn.addEventListener('click', () => {
-    settingsPanel.classList.toggle('hidden');
-});
 
 const outputFormatSelect = document.getElementById('output-format');
 const qualityGroup = document.getElementById('quality-group');

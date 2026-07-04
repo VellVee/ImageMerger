@@ -5,73 +5,70 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JXL Image Merger</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
     <div class="layout-wrapper">
-        <div class="container">
+        <div class="left-column">
+<aside id="settings-panel" class="settings-panel panel-card">
+            <h2>Settings</h2>
+            <div class="controls">
+                <label class="toggle-container">
+                    <input type="checkbox" id="auto-remove-black-bars">
+                    <span class="toggle-slider"></span>
+                    <span>Auto-remove Black Bars</span>
+                </label>
+                
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="direction" value="vertical" checked>
+                        Vertical
+                    </label>
+                    <label>
+                        <input type="radio" name="direction" value="horizontal">
+                        Horizontal
+                    </label>
+                </div>
+
+                <div class="format-group">
+                    <label>Output Format:</label>
+                    <select id="output-format">
+                        <option value="jxl">JXL</option>
+                        <option value="webp">WebP</option>
+                        <option value="jpg">JPG</option>
+                        <option value="png">PNG (Lossless)</option>
+                    </select>
+                </div>
+                
+                <div class="quality-group" id="quality-group">
+                    <label style="display: flex; justify-content: space-between;"><span>Quality:</span> <span id="quality-value">99</span></label>
+                    <input type="range" id="quality-slider" min="1" max="100" value="99">
+                </div>
+            </div>
+        </aside>
+        </div>
+
+        <div class="main-column container panel-card">
         <header>
             <h1>Image Merger</h1>
             <p>Drag, drop, crop, and merge your images.</p>
-            
-            <button id="menu-toggle-btn" class="menu-toggle-btn">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"></path></svg>
-            </button>
         </header>
 
         <main>
+            <div id="drop-zone" class="drop-zone">
+                <p>Drag & Drop Images Here</p>
+                <span>or click to browse</span>
+                <input type="file" id="file-input" multiple accept="image/*">
+            </div>
+
             <div class="action-buttons">
                 <button id="remove-all-btn" class="danger-btn" disabled>Remove All</button>
                 <button id="merge-btn" class="primary-btn" disabled>Merge & Download</button>
             </div>
 
             <div id="gallery" class="gallery"></div>
-
-            <div id="drop-zone" class="drop-zone">
-                <p>Drag & Drop Images Here</p>
-                <span>or click to browse</span>
-                <input type="file" id="file-input" multiple accept="image/*">
-            </div>
         </main>
     </div>
-
-    <!-- Settings Panel -->
-    <aside id="settings-panel" class="settings-panel hidden">
-        <h2>Settings</h2>
-        <div class="controls">
-            <label class="toggle-container">
-                <input type="checkbox" id="auto-remove-black-bars">
-                <span class="toggle-slider"></span>
-                <span>Auto-remove Black Bars</span>
-            </label>
-            
-            <div class="radio-group">
-                <label>
-                    <input type="radio" name="direction" value="vertical" checked>
-                    Vertical
-                </label>
-                <label>
-                    <input type="radio" name="direction" value="horizontal">
-                    Horizontal
-                </label>
-            </div>
-
-            <div class="format-group">
-                <label>Output Format:</label>
-                <select id="output-format">
-                    <option value="jxl">JXL</option>
-                    <option value="webp">WebP</option>
-                    <option value="jpg">JPG</option>
-                    <option value="png">PNG (Lossless)</option>
-                </select>
-            </div>
-            
-            <div class="quality-group" id="quality-group">
-                <label style="display: flex; justify-content: space-between;"><span>Quality:</span> <span id="quality-value">99</span></label>
-                <input type="range" id="quality-slider" min="1" max="100" value="99">
-            </div>
-        </div>
-    </aside>
     </div>
 
     <!-- Crop Modal -->
@@ -113,6 +110,6 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-    <script src="app.js?v=3"></script>
+    <script src="app.js?v=4"></script>
 </body>
 </html>
